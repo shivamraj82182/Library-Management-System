@@ -140,7 +140,9 @@ Example:
 **Shivam Rajput**
 
 - GitHub: https://github.com/shivamraj82182
-- LinkedIn: *(Add your LinkedIn profile link here)*
+- LinkedIn: www.linkedin.com/in/
+shivam-rajpoot-065480329
+
 
 ---
 
