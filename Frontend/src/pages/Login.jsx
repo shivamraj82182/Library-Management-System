@@ -1,29 +1,31 @@
-import React,{useState,useEffect} from 'react'
-import { loginStyles as s} from '../assets/dummyStyles'
-import { Lock,LockKeyhole, Mail, UserRound,ArrowRight, Eye,EyeOff,ShieldCheck } from "lucide-react";
-import { Link, useNavigate,useLocation } from "react-router-dom";
+import React, { useState, useEffect } from 'react'
+import { signInWithPopup, signOut } from "firebase/auth";
+import { auth, googleProvider } from "../firebase";
+import { loginStyles as s } from '../assets/dummyStyles'
+import { Lock, LockKeyhole, Mail, UserRound, ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../shared/AuthContext";
 
-const roleChoices=[
-  {value:"user",label:"Student", icon: UserRound},
-  {value:"admin",label:"Admin", icon:ShieldCheck},
+const roleChoices = [
+  { value: "user", label: "Student", icon: UserRound },
+  { value: "admin", label: "Admin", icon: ShieldCheck },
 
 ];
 
 const Login = () => {
-  const {login}= useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({
-    email:"",
-    password:"",
-    role:"user"
+    email: "",
+    password: "",
+    role: "user"
   });
-  const [error,setError] = useState("");
-  const [showPassword, setShowPassword]= useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
+  useEffect(() => {
     if (location.state?.signupEmail || location.state?.signupPassword) {
       setForm((current) => ({
         ...current,
@@ -33,10 +35,10 @@ const Login = () => {
     }
   }, [location.state]);  //to see the field input
 
-  const handleChange= (event)=> {
-    const {name, value}= event.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
     setError("");
-    setForm((current) => ({...current,[name]:value}));
+    setForm((current) => ({ ...current, [name]: value }));
   };
   // to submit the data to server and get the user/admin ligged in
   const handleSubmit = async (event) => {
@@ -44,20 +46,20 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      console.log("Attempting login with:",{
-        email:form.email,
+      console.log("Attempting login with:", {
+        email: form.email,
         role: form.role,
       });
       const result = await login(form);
       console.log("Login result:", result);
 
-      if(!result.ok){
+      if (!result.ok) {
         setLoading(false);
         setError(result.error || "Login failed");
-        console.error("Login failed:",result.error);
+        console.error("Login failed:", result.error);
         return;
       }
-      
+
       console.log("Login successful, navigating to dashboard...");
       await new Promise((resolve) => setTimeout(resolve, 100));
       setLoading(false);
@@ -88,13 +90,66 @@ const Login = () => {
 
       console.log("Navigating to:", target);
       navigate(target, { replace: true });
-    
-    } catch (err){
+
+    } catch (err) {
       setLoading(false);
-      console.error("Login Error:",err);
+      console.error("Login Error:", err);
       setError("An unexpected connection error occurred.");
     }
   };
+  const handleGoogleLogin = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      // Google login only for students
+      if (form.role !== "user") {
+        setError("Google login is available for students only.");
+        setLoading(false);
+        return;
+      }
+
+      const result = await signInWithPopup(auth, googleProvider);
+
+      const googleUser = result.user;
+
+      console.log("Google Login Successful:", {
+        name: googleUser.displayName,
+        email: googleUser.email,
+        photo: googleUser.photoURL,
+        uid: googleUser.uid,
+      });
+
+      // Save basic Google user information
+      localStorage.setItem(
+        "googleUser",
+        JSON.stringify({
+          uid: googleUser.uid,
+          name: googleUser.displayName,
+          email: googleUser.email,
+          photo: googleUser.photoURL,
+        })
+      );
+
+      setLoading(false);
+
+      navigate("/user/dashboard", {
+        replace: true,
+      });
+
+    } catch (error) {
+      console.error("Google Login Error:", error);
+
+      setLoading(false);
+
+      if (error.code === "auth/popup-closed-by-user") {
+        setError("Google login cancelled.");
+      } else {
+        setError(error.message || "Google login failed.");
+      }
+    }
+  };
+
 
 
   return (
@@ -118,29 +173,29 @@ const Login = () => {
 
               </p>
               <p className={s.infoBoxText}>
-                Register a new student account using the "Create account" link to test student 
+                Register a new student account using the "Create account" link to test student
                 to test student functionality with real data.
 
               </p>
             </div>
-              <div className={s.infoBox}>
-                <p className={s.infoBoxTitle}>
-                  <ShieldCheck size={16} />
-                  Admin Access
+            <div className={s.infoBox}>
+              <p className={s.infoBoxTitle}>
+                <ShieldCheck size={16} />
+                Admin Access
 
-                </p>
-                <p className={s.infoBoxText}>
-                  Log in using your Registered admin account to access the 
-                  administrative dashboard and catalog features.
-                </p>
-              </div>
+              </p>
+              <p className={s.infoBoxText}>
+                Log in using your Registered admin account to access the
+                administrative dashboard and catalog features.
+              </p>
+            </div>
           </div>
         </section>
         <section className={s.formPanel}>
           <div className={s.formInner}>
-            <Link 
-            to='/' 
-            className={s.backLink}
+            <Link
+              to='/'
+              className={s.backLink}
             >
               Back to Home
             </Link>
@@ -153,14 +208,13 @@ const Login = () => {
               <div className={s.roleContainer}>
                 <p className={s.roleLabel}>Choose login role </p>
                 <div className={s.roleGrid}>
-                  {roleChoices.map((choice)=>{
+                  {roleChoices.map((choice) => {
                     const Icon = choice.icon;
-                    return(
+                    return (
                       <label
-                        key={choice.value} 
+                        key={choice.value}
                         className={`${s.roleOption}
-                          ${
-                            form.role === choice.value 
+                          ${form.role === choice.value
                             ? s.roleOptionSelected
                             : s.roleOptionUnselected
                           }`}
@@ -168,13 +222,13 @@ const Login = () => {
                         <input type="radio" name="role" value={choice.value}
                           checked={form.role === choice.value}
                           onChange={handleChange}
-                          className={s.roleRadio}                      
+                          className={s.roleRadio}
                         />
                         <span className={s.roleIconLabel}>
-                          <Icon size={16}/>
+                          <Icon size={16} />
                           {choice.label}
                         </span>
-                      </label>  
+                      </label>
                     );
                   })}
 
@@ -195,7 +249,7 @@ const Login = () => {
                   className={s.input}
                 />
               </label>
-                
+
               <label className="block">
                 <span className={s.fieldLabel}>
                   <LockKeyhole size={15} />
@@ -214,12 +268,20 @@ const Login = () => {
 
                   <button
                     type="button"
-                    onClick={() => setShowPassword((current)=> !current)}
+                    onClick={() => setShowPassword((current) => !current)}
                     className={s.togglePasswordButton}
                   >
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} /> }
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
 
                   </button>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm font-medium text-emerald-700 hover:underline"
+                  >
+                    Forgot Password?
+                  </Link>
                 </div>
               </label>
 
@@ -247,13 +309,32 @@ const Login = () => {
                 {loading ? "Logging in..." : "Login now"}
                 {!loading && <ArrowRight size={15} />}
               </button>
-                
-            </form>    
+              {form.role === "user" && (
+                <>
+                  <div className="my-4 flex items-center gap-3">
+                    <div className="h-px flex-1 bg-gray-300"></div>
+                    <span className="text-sm text-gray-500">OR</span>
+                    <div className="h-px flex-1 bg-gray-300"></div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    <span className="text-lg font-bold">G</span>
+                    {loading ? "Connecting..." : "Continue with Google"}
+                  </button>
+                </>
+              )}
+
+            </form>
 
           </div>
 
         </section>
-      </div> 
+      </div>
     </div>
   )
 };

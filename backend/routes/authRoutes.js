@@ -30,6 +30,8 @@ import {
   getProfile,
   updateProfile,
   getUsers,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/authControllers.js";
 
 import {
@@ -44,6 +46,10 @@ authrouter.post("/verify-otp", verifyOtp);
 authrouter.post("/complete-profile", completeProfile);
 authrouter.post("/login", loginUser);
 authrouter.post("/register-admin", registerAdmin);
+
+//forget password
+authrouter.post("/forgot-password", forgotPassword);
+authrouter.post("/reset-password", resetPassword);
 
 // Protected Routes
 authrouter.get("/me", authenticateToken, getProfile);

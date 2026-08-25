@@ -17,6 +17,3 @@ export const connectDB = async () => {
 
 
 
-
-
-// -3:15 remaning

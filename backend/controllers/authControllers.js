@@ -313,4 +313,141 @@ export async function registerAdmin(req, res) {
       error: error.message
     });
   }
+};
+
+// Forgot Password - Send OTP
+export async function forgotPassword(req, res) {
+  try {
+    const { email, role } = req.body;
+
+    if (!email || !role) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and role are required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+      role,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "No account found with this email and role",
+      });
+    }
+
+    const otp = generate(6, {
+      upperAlphabets: false,
+      lowerCaseAlphabets: false,
+      specialChars: false,
+    });
+
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    try {
+      await sendOtp(normalizedEmail, otp);
+    } catch (emailError) {
+      console.error("Error sending reset OTP:", emailError);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send OTP email",
+      });
+    }
+
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset OTP sent to your email",
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Error processing forgot password",
+      error: error.message,
+    });
+  }
 }
+
+
+// Reset Password
+export async function resetPassword(req, res) {
+  try {
+    const { email, role, otp, newPassword } = req.body;
+
+    if (!email || !role || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, role, OTP and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+      role,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (
+      user.otp !== otp ||
+      !user.otpExpiry ||
+      new Date() > new Date(user.otpExpiry)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedPassword;
+    user.otp = null;
+    user.otpExpiry = null;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Error resetting password",
+      error: error.message,
+    });
+  }
+}
+
+
+
+
