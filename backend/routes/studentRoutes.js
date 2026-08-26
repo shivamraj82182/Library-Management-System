@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken,authorizeRoles } from '../middleware/authmiddleware.js';
+import { authenticateToken,authorizeRoles } from '../middleware/authMiddleware.js';
 import { searchStudentByRoll } from '../controllers/studentController.js';
 
 
