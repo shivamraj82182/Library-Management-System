@@ -1,14 +1,13 @@
 // import{Children, createContext, useContext } from "react";
 
-import React, {createContext,useContext,useState,useEffect,} from "react";
+import React, { createContext, useContext, useState, useEffect, } from "react";
 
 
 const AuthContext = createContext(null);
 
 const SESSION_KEY = 'library-auth-session';
 const TOKEN_KEY = 'library-auth-token';
-// const API_BASE_URL = 'http://localhost:5173/api/auth';
-const API_BASE_URL = 'http://localhost:5000/api/auth';
+const API_BASE_URL = 'https://library-management-system-etkk.onrender.com/api/auth';
 
 const defaultAccounts = [];
 
@@ -31,13 +30,13 @@ const mapUserToFrontend = (user) => {
   };
 }; //fetch all these details coming from the sever side
 
-export const AuthProvider = ({children}) => {
-    const [accounts, setAccounts] = useState(defaultAccounts);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [ready, setReady] = useState(false);
+export const AuthProvider = ({ children }) => {
+  const [accounts, setAccounts] = useState(defaultAccounts);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [ready, setReady] = useState(false);
 
-    // if user is admin then fetch all registerd user
-    const fetchRegisteredUsers = async (token) => {
+  // if user is admin then fetch all registerd user
+  const fetchRegisteredUsers = async (token) => {
     try {
       const response = await fetch(`${API_BASE_URL}/users`, {
         headers: {
@@ -75,7 +74,7 @@ export const AuthProvider = ({children}) => {
       console.error("Error fetching users from backend:", error);
     }
   };
-//    to fetch user profile details
+  //    to fetch user profile details
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem(TOKEN_KEY);
@@ -215,7 +214,7 @@ export const AuthProvider = ({children}) => {
       return {
         ok: false,
         error:
-          "Server connection failed. Please ensure the backend is running on http://localhost:5000",
+          "Server connection failed. Please try again later.",
       };
     }
   };
@@ -384,31 +383,31 @@ export const AuthProvider = ({children}) => {
 
 
 
-    return(
-        <AuthContext.Provider
-            value={{ 
-                accounts,
-                currentUser,
-                login,
-                logout,
-                ready,
-                signup,
-                registerStudent,
-                verifyOtpCode,
-                completeProfileData,
-                accountExists,
-                updateProfile,
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    )
+  return (
+    <AuthContext.Provider
+      value={{
+        accounts,
+        currentUser,
+        login,
+        logout,
+        ready,
+        signup,
+        registerStudent,
+        verifyOtpCode,
+        completeProfileData,
+        accountExists,
+        updateProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 };
 
 export const useAuth = () => {
-  const context =useContext(AuthContext);
+  const context = useContext(AuthContext);
 
-  if(!context){
+  if (!context) {
     throw new Error("useAuth must be used inside AuthProvider");
   }
   return context;

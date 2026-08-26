@@ -12,7 +12,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api/auth";
+const API_URL = "https://library-management-system-etkk.onrender.com/api/auth";
 
 const roleChoices = [
   {
