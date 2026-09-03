@@ -13,7 +13,7 @@ const roleChoices = [
 ];
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, setGoogleUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({
@@ -109,6 +109,7 @@ const Login = () => {
         return;
       }
 
+      // 1. Login with Google using Firebase
       const result = await signInWithPopup(auth, googleProvider);
 
       const googleUser = result.user;
@@ -120,7 +121,46 @@ const Login = () => {
         uid: googleUser.uid,
       });
 
-      // Save basic Google user information
+      // 2. Get Firebase ID Token
+      const idToken = await googleUser.getIdToken();
+
+      console.log("Firebase ID Token received");
+
+      // 3. Send Firebase token to backend
+      const response = await fetch(
+        "http://localhost:5000/api/auth/google-login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            idToken,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      console.log("Backend Google Login Response:", data);
+
+      // 4. Check backend response
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Google login failed"
+        );
+      }
+
+      // 5. Save YOUR backend JWT
+      localStorage.setItem("token", data.token);
+
+      // 6. Save user information
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
+
+      // 7. Save Google user information
       localStorage.setItem(
         "googleUser",
         JSON.stringify({
@@ -131,8 +171,19 @@ const Login = () => {
         })
       );
 
+      console.log("Backend JWT saved successfully");
+
       setLoading(false);
 
+      // 8. Profile not complete → complete profile
+      if (!data.user.isProfileComplete) {
+        navigate("/user/complete-profile", {
+          replace: true,
+        });
+        return;
+      }
+
+      // 9. Profile complete → dashboard
       navigate("/user/dashboard", {
         replace: true,
       });
@@ -145,7 +196,9 @@ const Login = () => {
       if (error.code === "auth/popup-closed-by-user") {
         setError("Google login cancelled.");
       } else {
-        setError(error.message || "Google login failed.");
+        setError(
+          error.message || "Google login failed."
+        );
       }
     }
   };
