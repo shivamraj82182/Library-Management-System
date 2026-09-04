@@ -1,28 +1,35 @@
-import { createTransport } from "nodemailer";
+import { Resend } from "resend";
 
 const sendOtp = async (email, otp) => {
+    try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const transporter = createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        family: 4,
+        const { data, error } = await resend.emails.send({
+            from: "ShelfWise Library <onboarding@resend.dev>",
+            to: [email],
+            subject: "Your ShelfWise Library OTP",
+            html: `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Password Reset OTP</h2>
+                    <p>Your OTP for resetting your password is:</p>
+                    <h1>${otp}</h1>
+                    <p>This OTP is valid for a limited time.</p>
+                </div>
+            `,
+        });
 
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-        },
-    });
+        if (error) {
+            console.error("Resend Error:", error);
+            throw new Error(error.message);
+        }
 
-    await transporter.sendMail({
-        from: `"Library Management System" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Your OTP Code",
-        html: `
-            <h2>Your OTP is ${otp}</h2>
-            <p>Your OTP for password reset is <strong>${otp}</strong>.</p>
-        `,
-    });
+        console.log("OTP email sent successfully:", data?.id);
+
+        return data;
+    } catch (error) {
+        console.error("Error sending reset OTP:", error);
+        throw error;
+    }
 };
 
 export default sendOtp;
