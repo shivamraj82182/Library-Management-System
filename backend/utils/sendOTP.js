@@ -1,5 +1,13 @@
 import { Resend } from "resend";
 
+
+console.log(
+  "RESEND_API_KEY check:",
+  process.env.RESEND_API_KEY
+    ? `${process.env.RESEND_API_KEY.substring(0, 7)}...`
+    : "MISSING"
+);
+
 const sendOtp = async (email, otp) => {
     try {
         const resend = new Resend(process.env.RESEND_API_KEY);

@@ -35,6 +35,13 @@ const navItems = [
     match: "/admin/fines",
     icon: "alerts",
   },
+    {
+    label: "Add Student",
+    description: "Register a new student",
+    href: "/admin/add-student",
+    match: "/admin/add-student",
+    icon: "users",
+  },
 ];
 
 

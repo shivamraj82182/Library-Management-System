@@ -1,3 +1,4 @@
+import { adminAuth } from "../config/firebaseAdmin.js";
 import User from "../models/User.js";
 import { generate } from "otp-generator";
 import sendOtp from "../utils/sendOTP.js";
@@ -192,6 +193,109 @@ export async function loginUser(req,res) {
     
     
 }
+
+// Login with Google
+export async function googleLogin(req, res) {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Firebase ID token is required",
+      });
+    }
+
+    // Verify Firebase ID token
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+
+    const email = decodedToken.email?.trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Google account email not found",
+      });
+    }
+
+    const name =
+      decodedToken.name ||
+      email.split("@")[0];
+
+    // Check if user already exists
+    let user = await User.findOne({ email });
+
+    // Create new student account if not exists
+    if (!user) {
+      const randomPassword = uuidv4();
+
+      const hashedPassword = await bcrypt.hash(
+        randomPassword,
+        10
+      );
+
+      const studentId = `ST-${uuidv4()
+        .slice(0, 8)
+        .toUpperCase()}`;
+
+      user = await User.create({
+        name,
+        email,
+
+        // User model currently requires phone
+        phone: `google-${decodedToken.uid}`,
+
+        password: hashedPassword,
+
+        isVerified: true,
+        isProfileComplete: false,
+
+        studentId,
+        role: "user",
+      });
+    }
+
+    // Google login is only for students
+    if (user.role !== "user") {
+      return res.status(403).json({
+        success: false,
+        message: "Google login is available for students only.",
+      });
+    }
+
+    // Generate application's JWT
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    // Remove password from response
+    const { password: _, ...userResponse } =
+      user.toObject();
+
+    return res.status(200).json({
+      success: true,
+      message: "Google login successful",
+      token,
+      user: userResponse,
+    });
+
+  } catch (error) {
+    console.error("Google login error:", error);
+
+    return res.status(401).json({
+      success: false,
+      message: "Google authentication failed",
+    });
+  }
+}
+
 // get curret user profile (me)
 
 export async function getProfile(req, res){
@@ -314,6 +418,91 @@ export async function registerAdmin(req, res) {
     });
   }
 };
+
+// Admin creates a student directly
+export async function createStudentByAdmin(req, res) {
+  try {
+    const {
+      name,
+      email,
+      phone,
+      password,
+      department,
+      stream,
+      semester,
+      year,
+      rollNo,
+    } = req.body;
+
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, phone and password are required",
+      });
+    }
+
+    const cleanPhone = phone.toString().replace(/\D/g, "");
+
+    if (cleanPhone.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number must be exactly 10 digits",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists with this email",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const studentId = `ST-${uuidv4().slice(0, 8).toUpperCase()}`;
+
+    const student = await User.create({
+      name,
+      email: normalizedEmail,
+      phone: cleanPhone,
+      password: hashedPassword,
+
+      role: "user",
+      isVerified: true,
+      isProfileComplete: true,
+
+      studentId,
+
+      department: department || "General",
+      stream: stream || "General",
+      semester: semester || "Semester 1",
+      year: year || "1st Year",
+      rollNo: rollNo || "",
+    });
+
+    const { password: _, ...studentResponse } = student.toObject();
+
+    return res.status(201).json({
+      success: true,
+      message: "Student created successfully",
+      user: studentResponse,
+    });
+  } catch (error) {
+    console.error("Error creating student by admin:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Error creating student",
+      error: error.message,
+    });
+  }
+}
 
 // Forgot Password - Send OTP
 export async function forgotPassword(req, res) {

@@ -5,7 +5,9 @@ import {
   verifyOtp,
   completeProfile,
   loginUser,
+  googleLogin,
   registerAdmin,
+  createStudentByAdmin,
   getProfile,
   updateProfile,
   getUsers,
@@ -24,7 +26,10 @@ authrouter.post("/register", registerUser);
 authrouter.post("/verify-otp", verifyOtp);
 authrouter.post("/complete-profile", completeProfile);
 authrouter.post("/login", loginUser);
+authrouter.post("/google-login", googleLogin);
 authrouter.post("/register-admin", registerAdmin);
+authrouter.post(
+  "/admin/create-student",authenticateToken,authorizeRoles("admin"),createStudentByAdmin);
 
 //forget password
 authrouter.post("/forgot-password", forgotPassword);

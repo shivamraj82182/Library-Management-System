@@ -8,3 +8,6 @@ backend/.env
 
 dist/
 build/
+
+backend/config/serviceAccountKey.json
+.env

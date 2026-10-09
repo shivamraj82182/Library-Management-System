@@ -56,6 +56,7 @@ const issueSchema = new mongoose.Schema({
       type: Number,
       default: 0,
     },
+
     department: {
       type: String,
     },

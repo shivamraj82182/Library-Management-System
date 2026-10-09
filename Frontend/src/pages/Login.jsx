@@ -151,16 +151,16 @@ const Login = () => {
         );
       }
 
-      // 5. Save YOUR backend JWT
-      localStorage.setItem("token", data.token);
+      // 5. Save backend JWT using the SAME keys used by AuthContext
+      localStorage.setItem("library-auth-token", data.token);
 
-      // 6. Save user information
+      // 6. Save backend user session using the SAME key used by AuthContext
       localStorage.setItem(
-        "user",
+        "library-auth-session",
         JSON.stringify(data.user)
       );
 
-      // 7. Save Google user information
+      // 7. Keep Google user information separately
       localStorage.setItem(
         "googleUser",
         JSON.stringify({
@@ -172,21 +172,18 @@ const Login = () => {
       );
 
       console.log("Backend JWT saved successfully");
+      console.log("Google session saved successfully");
 
       setLoading(false);
 
-      // 8. Profile not complete → complete profile
+      // Reload the app so AuthContext reads the new JWT/session
+      // and fetches the latest user from the backend.
       if (!data.user.isProfileComplete) {
-        navigate("/user/complete-profile", {
-          replace: true,
-        });
+        window.location.replace("/user/complete-profile");
         return;
       }
 
-      // 9. Profile complete → dashboard
-      navigate("/user/dashboard", {
-        replace: true,
-      });
+      window.location.replace("/user/dashboard");
 
     } catch (error) {
       console.error("Google Login Error:", error);
